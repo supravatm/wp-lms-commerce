@@ -1,0 +1,32 @@
+services:
+  phpfpm:
+    image: markoshust/magento-php:8.5-fpm-0
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+      - phpfpm_socket:/sock
+      - ./docker/certs/local-rootCA.crt:/usr/local/share/ca-certificates/local-rootCA.crt:ro
+  app:
+    image: markoshust/magento-nginx:1.28-0
+    ports:
+      - "8081:8000"
+      - "8444:8443"
+    volumes:
+      - ./src:/var/www/html:ro
+      - phpfpm_socket:/sock:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - phpfpm
+
+  db:
+    image: mariadb:11.8
+    environment:
+      MARIADB_DATABASE: learncommerce
+      MARIADB_USER: wpuser
+      MARIADB_PASSWORD: password
+      MARIADB_ROOT_PASSWORD: password
+    volumes:
+      - learncommerce_db:/var/lib/mysql
+volumes:
+  learncommerce_db:
+  phpfpm_socket:
