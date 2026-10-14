@@ -24,8 +24,9 @@ class LUI_Seat_Allocation
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             head_manager_user_id bigint(20) unsigned NOT NULL,
             group_manager_user_id bigint(20) unsigned NULL,
+            group_member_user_id bigint(20) unsigned NULL,
             order_id bigint(20) unsigned NOT NULL,
-            course_id varchar(200) NULL,
+            order_item_id varchar(200) NULL,
             purchased_seats int(10) unsigned NOT NULL DEFAULT 0,
             reserved_seats int(10) unsigned NOT NULL DEFAULT 0,
             assigned_seats int(10) unsigned NOT NULL DEFAULT 0,
@@ -34,9 +35,9 @@ class LUI_Seat_Allocation
             updated_at datetime NOT NULL,
             PRIMARY KEY  (id),
             KEY head_manager_user_id (head_manager_user_id),
-            KEY group_manager_course (group_manager_user_id, course_id),
+            KEY group_manager_course (group_manager_user_id, order_item_id),
             KEY order_id (order_id),
-            KEY course_id (course_id)
+            KEY order_item_id (order_item_id)
         ) $charset;");
     }
 
@@ -118,7 +119,7 @@ class LUI_Seat_Allocation
                     "SELECT id FROM {$this->table}
                  WHERE head_manager_user_id = %d
                    AND order_id = %d
-                   AND course_id = %s
+                   AND order_item_id = %s
                    AND group_manager_user_id IS NULL
                  LIMIT 1",
                     $head_manager_user_id,
@@ -137,7 +138,7 @@ class LUI_Seat_Allocation
                     'head_manager_user_id' => $head_manager_user_id,
                     'group_manager_user_id' => null,
                     'order_id' => $order_id,
-                    'course_id' => $course_id,
+                    'order_item_id' => $course_id,
                     'purchased_seats' => $seats,
                     'allocated_seats' => 0,
                     'reserved_seats' => 0,

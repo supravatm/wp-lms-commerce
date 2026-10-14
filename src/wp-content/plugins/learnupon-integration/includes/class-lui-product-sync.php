@@ -110,7 +110,7 @@ final class LUI_Product_Sync
         $product->update_meta_data('_lui_num_enrolled', absint($course['num_enrolled'] ?? 0));
         $product->update_meta_data('_lui_num_completed', absint($course['num_completed'] ?? 0));
 
-        $product->save();
+        // $product->save();
 
 
         return $product->save();

@@ -48,6 +48,7 @@ final class LUI_Bulk_Order_Admin
 
     public function render_metabox($post_or_order): void
     {
+        return;
         if (!current_user_can('manage_woocommerce')) {
             return;
         }
@@ -85,6 +86,7 @@ final class LUI_Bulk_Order_Admin
 
     public function mark_bulk_order(): void
     {
+        return;
         $logger = wc_get_logger();
         $source = ['source' => 'lui-bulk-order'];
 
@@ -167,6 +169,7 @@ final class LUI_Bulk_Order_Admin
         WC_Order $order,
         int $head_manager_user_id
     ): bool {
+        return true;
         global $wpdb;
         $table    = $wpdb->prefix . 'lui_seat_allocations';
         $order_id = $order->get_id();
@@ -182,13 +185,14 @@ final class LUI_Bulk_Order_Admin
             if (!$product) {
                 continue;
             }
+
             $quantity = (int) $item->get_quantity();
             if ($quantity <= 0) {
                 continue;
             }
-            $existing = $wpdb->get_row(
-                $wpdb->prepare("SELECT id, reserved_seats, assigned_seats FROM {$table} WHERE order_id = %d LIMIT 1", $order_id)
-            );
+            // $existing = $wpdb->get_row(
+            //     $wpdb->prepare("SELECT id, reserved_seats, assigned_seats FROM {$table} WHERE order_id = %d LIMIT 1", $order_id)
+            // );
 
             $result = $wpdb->insert(
                 $table,
@@ -196,7 +200,7 @@ final class LUI_Bulk_Order_Admin
                     'head_manager_user_id' => $head_manager_user_id,
                     'group_manager_user_id' => 0,
                     'order_id'              => $order_id,
-                    'course_id'             => $product->get_id(),
+                    'order_item_id'         => $item->get_id(),
                     'purchased_seats'       => $quantity,
                     'reserved_seats'        => 0,
                     'assigned_seats'        => 0,
@@ -206,7 +210,6 @@ final class LUI_Bulk_Order_Admin
                 ],
                 ['%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s']
             );
-            $testMe[][$product->get_id()] = $quantity;
         }
         return $result !== false;
     }

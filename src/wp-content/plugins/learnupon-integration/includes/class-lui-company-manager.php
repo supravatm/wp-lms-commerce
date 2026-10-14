@@ -458,7 +458,7 @@ class LUI_Company_Manager
         int $group_manager_user_id
     ): bool|WP_Error {
         $user = get_user_by('id', $group_manager_user_id);
-
+        error_log("add_group_manager: supravat2");
         if (!$user) {
             return new WP_Error(
                 'lui_invalid_group_manager',
@@ -475,8 +475,6 @@ class LUI_Company_Manager
 
         $table = $this->relationships;
 
-        // Find an existing relationship for this Group Manager.
-        // wp_die("SELECT id, head_manager_user_id, status FROM {$table} WHERE group_manager_user_id = %d LIMIT 1");
         $existing = $this->db->get_row(
             $this->db->prepare(
                 "SELECT id, head_manager_user_id, status FROM {$table} WHERE group_manager_user_id = %d LIMIT 1",
@@ -535,7 +533,7 @@ class LUI_Company_Manager
             ],
             ['%d', '%d', '%s', '%s', '%s']
         );
-
+        error_log("add_group_manager: supravat3");
         return $inserted
             ? true
             : new WP_Error(
@@ -545,6 +543,203 @@ class LUI_Company_Manager
     }
 
 
+    /**
+     * Assign a reserved seat to a Group Manager's member.
+     *
+     * The allocation summary row must have group_member_user_id = NULL.
+     * Each successful assignment creates a separate member allocation row.
+     *
+     * @param int $group_manager_user_id Group Manager user ID.
+     * @param int $group_member_user_id  WordPress user ID to assign.
+     * @param int $order_id              WooCommerce order ID.
+     * @param int $order_item_id         WooCommerce order item ID.
+     *
+     * @return bool|WP_Error True on success, WP_Error on failure.
+     */
+    public function add_member(
+        int $group_manager_user_id,
+        int $group_member_user_id,
+        int $order_id,
+        int $order_item_id
+    ): bool|WP_Error {
+        $table = $this->db->prefix . 'lui_seat_allocations';
+
+        if (
+            $group_manager_user_id <= 0 ||
+            $group_member_user_id <= 0 ||
+            $order_id <= 0 ||
+            $order_item_id <= 0
+        ) {
+            error_log("Invalid Group Manager, member, order, or order item.");
+            return new WP_Error(
+                'lui_invalid_seat_assignment',
+                __('Invalid Group Manager, member, order, or order item.', 'learnupon-integration')
+            );
+        }
+
+        $group_manager = get_user_by('id', $group_manager_user_id);
+        $member        = get_user_by('id', $group_member_user_id);
+
+        if (
+            !$group_manager ||
+            !in_array('group_manager', (array) $group_manager->roles, true)
+        ) {
+            error_log('A valid Group Manager account is required.');
+            return new WP_Error(
+                'lui_invalid_group_manager',
+                __('A valid Group Manager account is required.', 'learnupon-integration')
+            );
+        }
+
+        if (!$member) {
+            error_log('A valid Group Manager account is required.');
+            return new WP_Error(
+                'lui_invalid_group_member',
+                __('Group Member account was not found.', 'learnupon-integration')
+            );
+        }
+
+        $order = wc_get_order($order_id);
+
+        if (!$order || !$order->get_item($order_item_id)) {
+            error_log('The order item does not belong to the specified order.');
+            return new WP_Error(
+                'lui_invalid_order_item',
+                __('The order item does not belong to the specified order.', 'learnupon-integration')
+            );
+        }
+
+        // Prevent concurrent requests from assigning the same remaining seat.
+        $this->db->query('START TRANSACTION');
+
+        try {
+            // Lock the allocation summary row until the transaction completes.
+            $allocation = $this->db->get_row(
+                $this->db->prepare(
+                    "SELECT *
+                 FROM {$table}
+                 WHERE group_manager_user_id = %d
+                   AND order_id = %d
+                   AND order_item_id = %s
+                   AND group_member_user_id IS NULL 
+                   OR group_member_user_id = 0
+                   AND status = %s
+                 LIMIT 1
+                 FOR UPDATE",
+                    $group_manager_user_id,
+                    $order_id,
+                    (string) $order_item_id,
+                    'active'
+                )
+            );
+
+            if (!$allocation) {
+                error_log('No active seat allocation exists for this Group Manager');
+                throw new RuntimeException(
+                    __('No active seat allocation exists for this Group Manager, order, and order item.', 'learnupon-integration')
+                );
+            }
+
+            // A member can only be assigned once to this order item.
+            $already_assigned = $this->db->get_var(
+                $this->db->prepare(
+                    "SELECT id
+                 FROM {$table}
+                 WHERE group_manager_user_id = %d
+                   AND order_id = %d
+                   AND order_item_id = %s
+                   AND group_member_user_id = %d
+                 LIMIT 1",
+                    $group_manager_user_id,
+                    $order_id,
+                    (string) $order_item_id,
+                    $group_member_user_id
+                )
+            );
+
+            if ($already_assigned) {
+                error_log('This member has already been assigned a seat for this order item.');
+                throw new RuntimeException(
+                    __('This member has already been assigned a seat for this order item.', 'learnupon-integration')
+                );
+            }
+
+            $reserved = (int) $allocation->reserved_seats;
+            $assigned = (int) $allocation->assigned_seats;
+
+            if ($assigned >= $reserved) {
+                error_log('No reserved seats are available for this order item.');
+                throw new RuntimeException(
+                    __('No reserved seats are available for this order item.', 'learnupon-integration')
+                );
+            }
+
+            // Increment the summary counter only if a seat is still available.
+            $updated = $this->db->query(
+                $this->db->prepare(
+                    "UPDATE {$table}
+                 SET assigned_seats = assigned_seats + 1,
+                     updated_at = %s
+                 WHERE id = %d
+                   AND assigned_seats < reserved_seats",
+                    current_time('mysql'),
+                    (int) $allocation->id
+                )
+            );
+
+            if ($updated !== 1) {
+                error_log('Could not reserve the seat for this member.');
+                throw new RuntimeException(
+                    __('Could not reserve the seat for this member.', 'learnupon-integration')
+                );
+            }
+
+            // Record the individual member assignment separately.
+            $now = current_time('mysql');
+
+            $inserted = $this->db->insert(
+                $table,
+                [
+                    'head_manager_user_id'  => (int) $allocation->head_manager_user_id,
+                    'group_manager_user_id' => $group_manager_user_id,
+                    'group_member_user_id'  => $group_member_user_id,
+                    'order_id'              => $order_id,
+                    'order_item_id'         => (string) $order_item_id,
+                    'purchased_seats'       => 0,
+                    'reserved_seats'        => 0,
+                    'assigned_seats'        => 0,
+                    'status'                => 'active',
+                    'created_at'            => $now,
+                    'updated_at'            => $now,
+                ],
+                ['%d', '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%s', '%s', '%s']
+            );
+
+            if (!$inserted) {
+                throw new RuntimeException(
+                    __('Could not save the member seat assignment.', 'learnupon-integration')
+                );
+            }
+
+            $this->db->query('COMMIT');
+
+            return true;
+        } catch (RuntimeException $e) {
+            $this->db->query('ROLLBACK');
+
+            return new WP_Error(
+                'lui_seat_assignment_failed',
+                $e->getMessage()
+            );
+        } catch (Throwable $e) {
+            $this->db->query('ROLLBACK');
+
+            return new WP_Error(
+                'lui_seat_assignment_failed',
+                __('An unexpected error occurred while assigning the seat.', 'learnupon-integration')
+            );
+        }
+    }
 
     public function relationships_table_name(): string
     {

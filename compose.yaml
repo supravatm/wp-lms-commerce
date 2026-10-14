@@ -27,6 +27,10 @@ services:
       MARIADB_ROOT_PASSWORD: password
     volumes:
       - learncommerce_db:/var/lib/mysql
+  mailcatcher:
+    image: sj26/mailcatcher:v0.10.0
+    ports:
+      - "1081:1080"
 volumes:
   learncommerce_db:
   phpfpm_socket:
