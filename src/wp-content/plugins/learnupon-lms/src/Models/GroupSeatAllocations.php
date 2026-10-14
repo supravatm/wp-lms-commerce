@@ -114,8 +114,7 @@ class GroupSeatAllocations extends AbstractModel
             ),
             OBJECT
         ) ?: [];
-        error_log('SQL Query: ' . preg_replace('/\s+/', ' ', trim($this->wpdb->last_query)));
-        error_log('Database Error: ' . $this->wpdb->last_error);
+
         return $result;
     }
 }

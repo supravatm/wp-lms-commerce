@@ -6,6 +6,7 @@ services:
       - ./src:/var/www/html
       - phpfpm_socket:/sock
       - ./docker/certs/local-rootCA.crt:/usr/local/share/ca-certificates/local-rootCA.crt:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini:ro
   app:
     image: markoshust/magento-nginx:1.28-0
     ports:

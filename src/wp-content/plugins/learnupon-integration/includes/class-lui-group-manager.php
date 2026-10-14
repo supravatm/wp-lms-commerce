@@ -55,7 +55,7 @@ class LUI_Group_Manager
         }
     }
 
-    public function invite_member(int $group_manager_user_id, string $email, string $first_name = '', string $last_name = '', int $order_id, int $order_item_id): int|WP_Error
+    public function invite_member(int $group_manager_user_id, string $email, int $order_id, int $order_item_id, string $first_name = '', string $last_name = ''): int|WP_Error
     {
         error_log(wp_json_encode([$group_manager_user_id, $email, $first_name, $last_name], JSON_PRETTY_PRINT));
         $email = sanitize_email($email);

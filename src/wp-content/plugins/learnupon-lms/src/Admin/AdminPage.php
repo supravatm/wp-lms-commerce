@@ -63,6 +63,15 @@ class AdminPage
             'learnupon-lms-seat-allocation',
             [$this, 'renderSeatAllocation']
         );
+
+        add_submenu_page(
+            'learnupon-lms-settings',
+            __('LearnUpon Queue Test', 'learnupon-lms'),
+            __('LearnUpon Queue Test', 'learnupon-lms'),
+            'manage_options',
+            'learnupon-lms-queue-test',
+            [$this, 'learnupon_lms_render_queue_test']
+        );
     }
 
     /**
@@ -197,5 +206,64 @@ class AdminPage
         );
 
         return $settings;
+    }
+
+
+    // Create a temporary test trigger for queue
+
+    function learnupon_lms_render_queue_test(): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        if (
+            isset($_POST['learnupon_lms_queue_test']) &&
+            check_admin_referer('learnupon_lms_queue_test_action')
+        ) {
+            $user_id = isset($_POST['user_id'])
+                ? absint($_POST['user_id'])
+                : 0;
+
+            try {
+                $queue = new \LearnUponLMS\Queue\UserSyncQueue();
+                $action_id = $queue->enqueueUserSync($user_id);
+
+                echo '<div class="notice notice-success"><p>';
+                echo esc_html('Queue action ID: ' . $action_id);
+                echo '</p></div>';
+            } catch (\Throwable $e) {
+                echo '<div class="notice notice-error"><p>';
+                echo esc_html($e->getMessage());
+                echo '</p></div>';
+            }
+        }
+?>
+        <div class="wrap">
+            <h1>LearnUpon Queue Test</h1>
+
+            <form method="post">
+                <?php wp_nonce_field('learnupon_lms_queue_test_action'); ?>
+
+                <p>
+                    <label for="user_id">WordPress User ID</label>
+                    <input
+                        type="number"
+                        id="user_id"
+                        name="user_id"
+                        min="1"
+                        required>
+                </p>
+
+                <button
+                    type="submit"
+                    name="learnupon_lms_queue_test"
+                    value="1"
+                    class="button button-primary">
+                    Enqueue Test
+                </button>
+            </form>
+        </div>
+<?php
     }
 }

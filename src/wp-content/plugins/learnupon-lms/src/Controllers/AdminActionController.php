@@ -8,6 +8,7 @@ use Error;
 use LearnUponLMS\Services\ApiClient;
 use LearnUponLMS\Services\ProductSyncService;
 use LearnUponLMS\Services\UserSyncService;
+use LearnUponLMS\Queue\UserSyncQueue;
 
 final class AdminActionController
 {
@@ -87,42 +88,70 @@ final class AdminActionController
 
     public function fetchUsers(): void
     {
-        // Check permissions and nonce.
-        $this->authorize('learnupon_lms_fetch_users');
+        try {
+            // Check permissions and nonce.
+            $this->authorize('learnupon_lms_fetch_users');
 
-        // Read the submitted page number.
-        $page = max(1, absint(wp_unslash($_POST['page'] ?? 1)));
+            // Read the submitted page number.
+            $identifier = isset($_POST['user_identifier'])
+                ? trim(sanitize_text_field(wp_unslash($_POST['user_identifier']))) : '';
 
-        // Call the LearnUpon API client.
-        $result = (new ApiClient())->getUsers($page);
-
-        if (!is_array($result)) {
+            if ($identifier === '') {
+                $queue = new UserSyncQueue();
+                $action_id = $queue->enqueueUserSync();
+                if ($action_id === 0) {
+                    $this->redirectNotice(
+                        'error',
+                        __('Unable to enqueue user synchronization.', 'learnupon-lms'),
+                        'learnupon-lms-users'
+                    );
+                }
+                $this->redirectNotice(
+                    'success',
+                    sprintf(
+                        __('User synchronization queued. Action ID: %d', 'learnupon-lms'),
+                        $action_id
+                    ),
+                    'learnupon-lms-users'
+                );
+            } elseif (is_email($identifier)) {
+                // Email provided.
+                $result = (new ApiClient())->get_user_by_email($identifier);
+                if (is_wp_error($result)) {
+                    $this->redirectNotice(
+                        'error',
+                        __($result->get_error_message(), 'learnupon-lms'),
+                        'learnupon-lms-users'
+                    );
+                }
+            } elseif (ctype_digit($identifier) && (int) $identifier > 0) {
+                // Numeric user ID provided.
+                $result = (new ApiClient())->get_user_by_id((int) $identifier);
+                if (is_wp_error($result)) {
+                    $this->redirectNotice(
+                        'error',
+                        __($result->get_error_message(), 'learnupon-lms'),
+                        'learnupon-lms-users'
+                    );
+                }
+            } else {
+                $this->redirectNotice(
+                    'error',
+                    __('Enter a valid email address, positive user ID, or leave the field empty.', 'learnupon-lms'),
+                    'learnupon-lms-users'
+                );
+            }
+        } catch (\Throwable $e) {
+            wc_get_logger()->error(
+                $e->getMessage(),
+                ['source' => 'learnupon-lms-queue']
+            );
             $this->redirectNotice(
                 'error',
-                __('Unexpected LearnUpon API response.', 'learnupon-lms'),
+                __('Unable to schedule user synchronization.', 'learnupon-lms'),
                 'learnupon-lms-users'
             );
         }
-        $users = $result['user'] ?? [];
-        $syncResult = (new UserSyncService())->syncUsers($users);
-        if (is_wp_error($syncResult)) {
-            $this->redirectNotice(
-                'error',
-                $syncResult->get_error_message(),
-                'lui-learnupon-lms-data'
-            );
-        }
-        $message = sprintf(
-            'User sync completed. Total: %1$d, Updated: %2$d, Failed: %3$d',
-            $syncResult['total'],
-            $syncResult['success'],
-            $syncResult['failed']
-        );
-        $this->redirectNotice(
-            'success',
-            $message,
-            'learnupon-lms-users'
-        );
     }
 
     private function authorize(string $nonceAction): void
