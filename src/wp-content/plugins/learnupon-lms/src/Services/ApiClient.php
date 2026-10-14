@@ -31,9 +31,13 @@ final class ApiClient
     {
         return $this->request('GET', 'courses', ['page' => max(1, $page)]);
     }
-    public function getUsers(int $page = 1)
+    public function getUsers()
     {
-        return $this->request('GET', 'users', ['page' => max(1, $page)]);
+        return $this->request('GET', 'users');
+    }
+    public function get_user_by_id(int $id)
+    {
+        return $this->request('GET', 'users/' . $id);
     }
     public function get_user_by_email(string $email)
     {
@@ -90,7 +94,7 @@ final class ApiClient
                 'Content-Type' => 'application/json',
             ],
         ]);
-        error_log(print_r($response, true));
+        // error_log(print_r($response, true));
 
         if (is_wp_error($response)) {
             return new \WP_Error(
@@ -109,23 +113,19 @@ final class ApiClient
                     __('LearnUpon returned HTTP %d.', 'learnupon-lms'),
                     $status
                 );
-
             return new \WP_Error(
                 'learnupon_http_error',
                 $message,
                 ['status' => $status]
             );
         }
-
         $data = $body !== '' ? json_decode($body, true) : [];
-
         if ($body !== '' && !is_array($data)) {
             return new \WP_Error(
                 'learnupon_invalid_json',
                 __('LearnUpon returned invalid JSON.', 'learnupon-lms')
             );
         }
-        error_log($data);
         return $data;
     }
 }

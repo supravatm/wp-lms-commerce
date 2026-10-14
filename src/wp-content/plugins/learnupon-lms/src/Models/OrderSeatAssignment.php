@@ -40,13 +40,10 @@ class OrderSeatAssignment extends AbstractModel
         WHERE sa.group_member_user_id = %d
           AND sa.status = 'active'
           AND t.status = 'active'",
-                $userId,
                 $userId
             ),
             OBJECT
         ) ?: [];
-        error_log('SQL Query: ' . preg_replace('/\s+/', ' ', trim($this->wpdb->last_query)));
-        error_log('Database Error: ' . $this->wpdb->last_error);
         return $result;
     }
 
@@ -74,13 +71,10 @@ class OrderSeatAssignment extends AbstractModel
           AND sa.assigned_by = %d
           AND sa.status = 'active'
           AND t.status = 'active'",
-                $userId,
                 $userId
             ),
             OBJECT
         ) ?: [];
-        error_log('SQL Query: ' . preg_replace('/\s+/', ' ', trim($this->wpdb->last_query)));
-        error_log('Database Error: ' . $this->wpdb->last_error);
         return $result;
     }
 }
