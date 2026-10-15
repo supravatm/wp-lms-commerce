@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LearnUponLMS\Services;
 
+use LearnUponLMS\Core\Roles;
+
 use WP_Error;
 
 final class UserSync
@@ -53,9 +55,8 @@ final class UserSync
                 __('A valid LearnUpon user ID is required.', 'learnupon-lms')
             );
         }
-        // error_log(print_r($user_data['user_type'], true));
-        $role = sanitize_key($user_data['user_type'] ?? 'customer');
-        $allowed_roles = ['customer'];
+        $role = sanitize_key($user_data['user_type'] ?? Roles::LEARNER);
+        $allowed_roles = array_keys(Roles::all());
 
         if (!in_array($role, $allowed_roles, true)) {
             return new \WP_Error(
@@ -70,15 +71,29 @@ final class UserSync
             'user_email' => $email,
             'first_name' => sanitize_text_field($user_data['first_name'] ?? ''),
             'last_name'  => sanitize_text_field($user_data['last_name'] ?? ''),
-            'role'       => $role,
         ];
 
         if ($existing_user_id) {
-            // Update the existing WordPress user.
+            // Never touch privileged accounts; only record the LearnUpon mapping.
+            $existing_user = get_userdata($existing_user_id);
+            $protected = ['administrator', 'shop_manager'];
+
+            if ($existing_user && array_intersect($protected, (array) $existing_user->roles)) {
+                update_user_meta($existing_user_id, 'learnupon_lms_user_id', $learnupon_user_id);
+
+                return (int) $existing_user_id;
+            }
+
+            // Update profile fields without replacing the user's current roles.
             $userdata['ID'] = $existing_user_id;
             $user_id = wp_update_user($userdata);
+
+            if (!is_wp_error($user_id) && $existing_user && !in_array($role, (array) $existing_user->roles, true)) {
+                $existing_user->add_role($role);
+            }
         } else {
             // Create a new WordPress user.
+            $userdata['role'] = $role;
             $userdata['user_login'] = $email;
             $userdata['user_pass'] = wp_generate_password(32, true, true);
 

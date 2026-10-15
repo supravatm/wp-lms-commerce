@@ -1,2 +1,4 @@
 *.log
+*.sql
 /src/wp-content/uploads/
+/src/wp-config.php

@@ -70,7 +70,7 @@ final class AdminActionController
             $this->redirectNotice(
                 'error',
                 $syncResult->get_error_message(),
-                'lui-learnupon-lms-data'
+                'learnupon-lms-courses'
             );
         }
         $message = sprintf(
@@ -124,6 +124,11 @@ final class AdminActionController
                         'learnupon-lms-users'
                     );
                 }
+                $this->redirectNotice(
+                    'success',
+                    __('LearnUpon user found.', 'learnupon-lms'),
+                    'learnupon-lms-users'
+                );
             } elseif (ctype_digit($identifier) && (int) $identifier > 0) {
                 // Numeric user ID provided.
                 $result = (new ApiClient())->get_user_by_id((int) $identifier);
@@ -134,6 +139,11 @@ final class AdminActionController
                         'learnupon-lms-users'
                     );
                 }
+                $this->redirectNotice(
+                    'success',
+                    __('LearnUpon user found.', 'learnupon-lms'),
+                    'learnupon-lms-users'
+                );
             } else {
                 $this->redirectNotice(
                     'error',
@@ -170,7 +180,7 @@ final class AdminActionController
     private function redirectNotice(
         string $type,
         string $message,
-        string $page = 'lui-learnupon-lms'
+        string $page = 'learnupon-lms-settings'
     ): void {
         set_transient(
             'learnupon_lms_admin_notice_' . get_current_user_id(),
