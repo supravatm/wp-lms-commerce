@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LearnUponLMS\Controllers;
+namespace LearnUponLMS\Admin\Controllers;
 
 use Error;
 use LearnUponLMS\Services\ApiClient;
