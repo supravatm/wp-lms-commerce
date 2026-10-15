@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace LearnUponLMS\Frontend;
 
-use LearnUponLMS\Controllers\MyLearningController;
-use LearnUponLMS\Controllers\MyResourceController;
-use LearnUponLMS\Controllers\MyCompanyController;
+use LearnUponLMS\Frontend\Controllers\LearnerController;
+use LearnUponLMS\Frontend\Controllers\ResourceController;
+use LearnUponLMS\Frontend\Controllers\CompanyController;
 
 final class MyAccount
 {
@@ -26,49 +26,49 @@ final class MyAccount
 
         // Register each endpoint callback
         add_action(
-            'woocommerce_account_my-learning_endpoint',
-            [$this, 'renderLearningPage']
+            'woocommerce_account_learner_endpoint',
+            [$this, 'renderLearnerPage']
         );
 
         add_action(
-            'woocommerce_account_my-resource_endpoint',
+            'woocommerce_account_resource_endpoint',
             [$this, 'renderResourcePage']
         );
 
         add_action(
-            'woocommerce_account_my-company_endpoint',
+            'woocommerce_account_company_endpoint',
             [$this, 'renderCompanyPage']
         );
 
 
         add_action(
-            'learnupon_lms_my_learning_content',
-            [$this, 'renderLearningContent']
+            'learnupon_lms_learner_content',
+            [$this, 'renderLearnerContent']
         );
 
         add_action(
-            'learnupon_lms_my_resource_content',
+            'learnupon_lms_resource_content',
             [$this, 'renderResourceContent']
         );
 
         add_action(
-            'learnupon_lms_my_company_content',
+            'learnupon_lms_company_content',
             [$this, 'renderCompanyContent']
         );
     }
 
     public function addEndpoint(): void
     {
-        add_rewrite_endpoint('my-learning', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('my-resource', EP_ROOT | EP_PAGES);
-        add_rewrite_endpoint('my-company', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('learner', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('resource', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('company', EP_ROOT | EP_PAGES);
     }
 
     public function registerQueryVar(array $vars): array
     {
-        $vars['my-learning'] = 'my-learning';
-        $vars['my-resource'] = 'my-resource';
-        $vars['my-company'] = 'my-company';
+        $vars['learner'] = 'learner';
+        $vars['resource'] = 'resource';
+        $vars['company'] = 'company';
 
         return $vars;
     }
@@ -76,17 +76,17 @@ final class MyAccount
     public function addMenuItem(array $items): array
     {
         $endpoints = [
-            'my-learning' => [
-                'label'      => __('My Learning', 'learnupon-lms'),
-                'controller' => new MyLearningController(),
+            'learner' => [
+                'label'      => __('Learner', 'learnupon-lms'),
+                'controller' => new LearnerController(),
             ],
-            'my-resource' => [
-                'label'      => __('My Resources', 'learnupon-lms'),
-                'controller' => new MyResourceController(),
+            'resource' => [
+                'label'      => __('Resources', 'learnupon-lms'),
+                'controller' => new ResourceController(),
             ],
-            'my-company' => [
-                'label'      => __('My Company', 'learnupon-lms'),
-                'controller' => new MyCompanyController(),
+            'company' => [
+                'label'      => __('Company', 'learnupon-lms'),
+                'controller' => new CompanyController(),
             ],
         ];
         $logout = $items['customer-logout'] ?? null;
@@ -103,28 +103,28 @@ final class MyAccount
         return $items;
     }
 
-    public function renderLearningPage(): void
+    public function renderLearnerPage(): void
     {
         $this->renderEndpoint(
-            new MyLearningController(),
-            'learnupon_lms_my_learning_content',
-            'My Learning'
+            new LearnerController(),
+            'learnupon_lms_learner_content',
+            'Learner'
         );
     }
     public function renderResourcePage(): void
     {
         $this->renderEndpoint(
-            new MyResourceController(),
-            'learnupon_lms_my_resource_content',
-            'My Resources'
+            new ResourceController(),
+            'learnupon_lms_resource_content',
+            'Resources'
         );
     }
     public function renderCompanyPage(): void
     {
         $this->renderEndpoint(
-            new MyCompanyController(),
-            'learnupon_lms_my_company_content',
-            'My Company'
+            new CompanyController(),
+            'learnupon_lms_company_content',
+            'Company'
         );
     }
 
@@ -148,18 +148,18 @@ final class MyAccount
         do_action($contentHook);
     }
 
-    public function renderLearningContent(): void
+    public function renderLearnerContent(): void
     {
-        require LEARNUPON_LMS_PATH . 'src/Views/frontend/my-learning.php';
+        require LEARNUPON_LMS_PATH . 'src/Views/frontend/dashboard-learner.php';
     }
 
     public function renderResourceContent(): void
     {
-        require LEARNUPON_LMS_PATH . 'src/Views/frontend/my-resource.php';
+        require LEARNUPON_LMS_PATH . 'src/Views/frontend/dashboard-resource.php';
     }
 
     public function renderCompanyContent(): void
     {
-        require LEARNUPON_LMS_PATH . 'src/Views/frontend/my-company.php';
+        require LEARNUPON_LMS_PATH . 'src/Views/frontend/dashboard-company.php';
     }
 }

@@ -45,11 +45,11 @@ final class ApiClient
     }
     public function create_user(array $user)
     {
-        return $this->request('POST', 'users', ['User' => $user]);
+        return $this->request('POST', 'users', [], ['User' => $user]);
     }
     public function update_user(array $user)
     {
-        return $this->request('PUT', 'users', ['User' => $user]);
+        return $this->request('PUT', 'users', [], ['User' => $user]);
     }
     public function get_enrollments_by_email(string $email)
     {
@@ -57,12 +57,13 @@ final class ApiClient
     }
     public function enroll_user(array $enrollment)
     {
-        return $this->request('POST', 'enrollments', ['Enrollment' => $enrollment]);
+        return $this->request('POST', 'enrollments', [], ['Enrollment' => $enrollment]);
     }
     private function request(
         string $method,
         string $path,
-        array $query = []
+        array $query = [],
+        array $body = []
     ): array|\WP_Error {
         if (
             $this->baseUrl === ''
@@ -93,6 +94,7 @@ final class ApiClient
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ],
+            'body' => $body !== [] ? wp_json_encode($body) : null,
         ]);
         // error_log(print_r($response, true));
 

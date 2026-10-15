@@ -106,7 +106,7 @@ class AdminBulkOrder
         $user_id = $order->get_customer_id();
         if ($user_id > 0) {
             $user = new \WP_User($user_id);
-            $allowed_roles = ['customer', 'group_manager'];
+            $allowed_roles = ['learner', 'instructor', 'manager'];
             if (array_intersect($allowed_roles, $user->roles)) {
                 $isSelfAssignment = true;
             }

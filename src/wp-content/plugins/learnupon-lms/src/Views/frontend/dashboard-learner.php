@@ -30,31 +30,21 @@ $selfAssignments = $orderSeatAssignment->getCourseAssignedBySelf($userId);
         </thead>
         <tbody>
             <?php foreach ($assignments as $assignment) : ?>
-                <?php echo '<pre>';
-                // echo esc_html(wp_json_encode($assignment, JSON_PRETTY_PRINT));
-                echo '</pre>'; ?>
                 <tr>
                     <td><?php echo esc_html((string) $assignment->course_id); ?></td>
                     <td><?php echo esc_html((string) $assignment->order_item_name); ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!empty($selfAssignments)) : ?>
-                <?php foreach ($assignments as $assignment) : ?>
-                    <?php echo '<pre>';
-                    // echo esc_html(wp_json_encode($assignment, JSON_PRETTY_PRINT));
-                    echo '</pre>'; ?>
+                <?php foreach ($selfAssignments as $selfAssignment) : ?>
                     <tr>
-                        <td><?php echo esc_html((string) $assignment->course_id); ?></td>
-                        <td><?php echo esc_html((string) $assignment->order_item_name); ?></td>
+                        <td><?php echo esc_html((string) $selfAssignment->course_id); ?></td>
+                        <td><?php echo esc_html((string) $selfAssignment->order_item_name); ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
         </tbody>
     </table>
 <?php else : ?>
-    <tr>
-        <td colspan="6">
-            <?php esc_html_e('No assignments found.', 'learnupon-lms'); ?>
-        </td>
-    </tr>
+    <p><?php esc_html_e('No assignments found.', 'learnupon-lms'); ?></p>
 <?php endif; ?>
