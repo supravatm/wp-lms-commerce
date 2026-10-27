@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace LearnUponLMS\Controllers;
+namespace LearnUponLMS\Admin\Controllers;
 
 use Error;
 use LearnUponLMS\Services\ApiClient;
 use LearnUponLMS\Services\ProductSyncService;
 use LearnUponLMS\Services\UserSyncService;
 use LearnUponLMS\Queue\UserSyncQueue;
+use LearnUponLMS\Services\UserSync;
 
 final class AdminActionController
 {
@@ -116,11 +117,12 @@ final class AdminActionController
                 );
             } elseif (is_email($identifier)) {
                 // Email provided.
-                $result = (new ApiClient())->get_user_by_email($identifier);
-                if (is_wp_error($result)) {
+                $usser = (new ApiClient())->get_user_by_email($identifier);
+                $userId = (new UserSync())->sync($usser);
+                if (is_wp_error($usser)) {
                     $this->redirectNotice(
                         'error',
-                        __($result->get_error_message(), 'learnupon-lms'),
+                        __($usser->get_error_message(), 'learnupon-lms'),
                         'learnupon-lms-users'
                     );
                 }
