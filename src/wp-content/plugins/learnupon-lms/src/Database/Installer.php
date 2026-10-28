@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LearnUponLMS\Database;
 
 use LearnUponLMS\Models\SeatAllocationInstaller;
+use LearnUponLMS\Models\OrganizationInstaller;
 
 /**
  * Versioned schema installer.
@@ -21,6 +22,7 @@ final class Installer
     public static function install(): void
     {
         SeatAllocationInstaller::install();
+        OrganizationInstaller::install();
         update_option(self::OPTION, self::DB_VERSION);
     }
 

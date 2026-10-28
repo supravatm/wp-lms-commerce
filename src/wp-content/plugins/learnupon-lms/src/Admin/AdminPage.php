@@ -8,6 +8,7 @@ use LearnUponLMS\Admin\Controllers\AdminActionController;
 use LearnUponLMS\Admin\Controllers\AdminBulkOrder;
 use LearnUponLMS\Admin\Controllers\AdminUser;
 use LearnUponLMS\Models\SeatAllocationsListTable;
+use LearnUponLMS\Models\OrganizationListTable;
 
 class AdminPage
 {
@@ -63,8 +64,35 @@ class AdminPage
             'learnupon-lms-seat-allocation',
             [$this, 'renderSeatAllocation']
         );
+        add_submenu_page(
+            'learnupon-lms-settings',
+            __('Organization', 'learnupon-lms'),
+            __('Organization', 'learnupon-lms'),
+            'manage_options',
+            'learnupon-lms-organization',
+            [$this, 'renderOrganization']
+        );
     }
 
+    /**
+     * Render the organization admin page.
+     */
+    public function renderOrganization(): void
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die(
+                esc_html__(
+                    'You do not have permission to view organization.',
+                    'learnupon-lms'
+                )
+            );
+        }
+
+        $table = new OrganizationListTable();
+        $table->prepare_items();
+
+        require LEARNUPON_LMS_PATH . 'src/Views/admin/organization-grid.php';
+    }
     /**
      * Render the Seat Allocations admin page.
      */
